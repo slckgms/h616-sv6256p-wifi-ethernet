@@ -64,6 +64,11 @@ Comment it out and let the kernel's flag win:
 # DISABLED (root cause of insmod failure): ccflags-y += -fpatchable-function-entry=0
 ```
 
+**This is fixed upstream now** (cdhigh/armbian_sv6256p#6, merged 2026-09-04), so
+if you clone the driver today you can skip this one and the patch in `patches/`.
+It is still written up here because the same mistake is easy to reintroduce, and
+because plenty of forks and vendor trees still carry the old line.
+
 ### 2. `struct module` is not the size the headers claim
 
 This one is not driver specific and is worth knowing if you build any
@@ -112,7 +117,9 @@ Native on the box, against the stock headers:
 ```bash
 git clone https://github.com/cdhigh/armbian_sv6256p
 cd armbian_sv6256p
-patch -p1 < /path/to/patches/0001-drop-fpatchable-function-entry-0.patch
+# only needed on an older checkout or a fork; upstream main already has this
+grep -q '^ccflags-y += -fpatchable-function-entry=0' config_common.mak &&
+  patch -p1 < /path/to/patches/0001-drop-fpatchable-function-entry-0.patch
 make clean
 make -j"$(nproc)" \
   KSRC=/usr/src/linux-headers-"$(uname -r)" \
