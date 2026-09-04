@@ -1,0 +1,48 @@
+// H616 NAND controller overlay, PIO only (no dmas property on purpose).
+//
+// The clock and reset indices are the raw ccu numbers for H616: 0x3b ahb,
+// 0x39 mod, 0x3a ecc, 0x36 mbus, reset 0x0d. Swap in the CLK_* / RST_*
+// macros from dt-bindings/clock/sun50i-h616-ccu.h if you prefer names.
+//
+// Build:  dtc -@ -I dts -O dtb -o nand-h616-pio.dtbo nand-h616-pio.dts
+//
+// Remember to unbind mmc2 first, it is holding these same pins:
+//   echo 4022000.mmc > /sys/bus/platform/drivers/sunxi-mmc/unbind
+
+/dts-v1/;
+/plugin/;
+
+&pio {
+	nand_pins_ovl: nand-pins-ovl {
+		pins = "PC0", "PC1", "PC2", "PC5", "PC8", "PC9", "PC10",
+		       "PC11", "PC12", "PC13", "PC14", "PC15", "PC16";
+		function = "nand0";
+	};
+
+	nand_cs0_ovl: nand-cs0-ovl {
+		pins = "PC4";
+		function = "nand0";
+		bias-pull-up;
+	};
+};
+
+&{/soc} {
+	nfc: nand-controller@4011000 {
+		compatible = "allwinner,sun50i-h616-nand-controller";
+		reg = <0x04011000 0x1000>;
+		interrupts = <0 34 4>;			/* GIC_SPI 34, level high */
+		clocks = <&ccu 0x3b>, <&ccu 0x39>, <&ccu 0x3a>, <&ccu 0x36>;
+		clock-names = "ahb", "mod", "ecc", "mbus";
+		resets = <&ccu 0x0d>;
+		reset-names = "ahb";
+		pinctrl-names = "default";
+		pinctrl-0 = <&nand_pins_ovl>, <&nand_cs0_ovl>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		status = "okay";
+
+		nand@0 {
+			reg = <0>;
+		};
+	};
+};

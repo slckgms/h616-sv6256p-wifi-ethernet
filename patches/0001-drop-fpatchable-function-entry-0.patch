@@ -1,0 +1,17 @@
+Drop -fpatchable-function-entry=0 from the driver build flags
+
+On arm64 the kernel builds modules with -fpatchable-function-entry=4,2. The
+driver overriding it with =0 means the module gets no
+__patchable_function_entries section, its ftrace state no longer matches the
+kernel's, and module loading is refused with "Invalid module format".
+
+Let the kernel's own flag stand.
+
+--- a/config_common.mak
++++ b/config_common.mak
+@@ -27,7 +27,7 @@
+ # Disable patchable function entry to prevent ftrace instrumentation
+ # Use =0 to set zero patchable NOPs at function entry
+-ccflags-y += -fpatchable-function-entry=0
++# DISABLED (root cause of insmod failure): ccflags-y += -fpatchable-function-entry=0
+ ccflags-y += -fno-optimize-sibling-calls

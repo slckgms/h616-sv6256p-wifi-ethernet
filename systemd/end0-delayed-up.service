@@ -1,0 +1,12 @@
+[Unit]
+Description=Bring end0 up late, after the RMII PHY has finished calibrating
+After=network.target systemd-networkd.service
+Wants=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/end0-delayed-up.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
