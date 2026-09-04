@@ -69,13 +69,35 @@ Comment it out and let the kernel's flag win:
 This one is not driver specific and is worth knowing if you build any
 out-of-tree module on Armbian.
 
-The stock kernel was built with `CONFIG_DEBUG_INFO_BTF_MODULES=y`, which adds
-`btf_data` pointers to `struct module` (+24 bytes here). The `.config` shipped
-inside `/usr/src/linux-headers-*` has it **off**. On my install it got dropped
-when the headers were regenerated with a GCC 13 that had no pahole available. So
-the module compiles against a smaller `struct module` than the running kernel
-actually has, the sizes disagree, and you get the `this_module section size`
-message above.
+The running kernel was built with `CONFIG_DEBUG_INFO_BTF_MODULES=y`, which adds
+`btf_data` pointers to `struct module` (+24 bytes here). The `.config` sitting in
+`/usr/src/linux-headers-*` had it **off**, so the module compiles against a
+smaller `struct module` than the running kernel actually has, the sizes disagree,
+and you get the `this_module section size` message above.
+
+To be clear about where that came from, because I got this wrong at first and
+blamed the distro: the Armbian package was fine. I had regenerated the headers
+myself in an environment with no pahole installed, and Kconfig quietly turns
+`DEBUG_INFO_BTF` off when pahole is missing. `dpkg -V` says it plainly:
+
+```
+$ dpkg -V linux-headers-edge-sunxi64
+??5??????   /usr/src/linux-headers-6.12.11-edge-sunxi64/.config
+??5??????   /usr/src/linux-headers-6.12.11-edge-sunxi64/include/config/auto.conf
+??5??????   /usr/src/linux-headers-6.12.11-edge-sunxi64/include/generated/autoconf.h
+```
+
+Those are exactly the files `make prepare` / `oldconfig` rewrites. If yours comes
+back clean, your headers are untouched and your problem is somewhere else.
+
+So the general lesson isn't "Armbian ships bad headers", it's that **the headers'
+`.config` can drift from the kernel you are actually running**, and when it does
+the module loader's complaint tells you nothing useful about why. Compare them
+directly before assuming anything:
+
+```bash
+diff <(zcat /proc/config.gz) /usr/src/linux-headers-"$(uname -r)"/.config
+```
 
 Force the define back on at build time. No kernel rebuild needed:
 
